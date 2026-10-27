@@ -1,0 +1,5 @@
+langchain
+faiss-cpu
+rank-bm25
+sentence-transformers
+tqdm

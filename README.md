@@ -1,25 +1,19 @@
 # PlainSight
 
-PlainSight is an experimental contract review app for Australian small businesses. It parses uploaded PDF or DOCX contracts, extracts clauses, writes plain-English summaries, and displays clause-level risk annotations. The project is archived and is not maintained as a legal advice product.
+PlainSight is a now-defunct prototype for Australian contract review. It accepted PDF and DOCX agreements, broke them into clauses, generated plain-English summaries, and highlighted potential risks in a clause-by-clause interface.
 
-## What is in this repository
+## How it worked
 
-- **Contract review app:** The root `app.py`, `components/`, `utils/`, and `prompts/` contain the Streamlit prototype. `utils/llm_interface.py` uses GPT-4o-mini for clause extraction and summaries and GPT-4o for risk analysis. It also has a mock mode for interface development.
-- **Earlier retrieval experiment:** [`archive/rag-prototype/`](archive/rag-prototype/) preserves source recovered from local editor history. It contains a LangChain FAISS vector store and an earlier risk-analysis path that inserts retrieved context into the LLM prompt. This code is separate from the current app and has not been validated end to end. The legal corpus and vector index used during development were not recovered.
-- **Application screenshots:** The images below were included in my 2025 incubator application. They show the landing page and a clause-analysis screen from prototype iterations.
+- GPT-4o-mini extracted and summarized clauses; GPT-4o generated risk annotations.
+- A LangChain/FAISS vector store retrieved legal context for clause analysis. The [`retrieval/`](retrieval/) code also includes a BM25 + FAISS hybrid index with section- and sentence-aware chunking and reciprocal-rank fusion for legal source search.
+- A rule-based analyzer covered common unfair-term patterns.
 
-The incubator application described plans to expand retrieval over Australian legal sources, add rules, and validate clause coverage with users. Those plans should not be read as features or results established by this repository. The separate BM25 + FAISS case-law research project is not part of PlainSight.
+The contract review UI is in `app.py`, `components/`, and `utils/`. The retrieval code is in `retrieval/`; `utils/llm_interface.py` uses a configured retrieval index to add source context to risk prompts. The original project is no longer maintained.
 
 ## Screenshots
+
+These screenshots were included in the PlainSight incubator application.
 
 ![PlainSight landing page](docs/screenshots/incubator-landing.png)
 
 ![Clause-level analysis screen](docs/screenshots/incubator-clause-analysis.png)
-
-## Technical notes
-
-The current app accepts PDF and DOCX files through `utils/document_parser.py`, then uses the prompts in `prompts/` for extraction, summarization, and risk analysis. Risk annotations are rendered in `components/detailed_analysis.py`.
-
-The archived retrieval experiment uses generic text splitting and vector similarity search over a FAISS index. It does **not** implement hybrid retrieval or clause-aware chunking. Those methods appear in a different legal research project and should not be attributed to PlainSight. The archived files include illustrative legal text that may be outdated; do not use them as a source of current law.
-
-This repository is a historical prototype. No evaluation benchmark or current production reliability claim is provided here.

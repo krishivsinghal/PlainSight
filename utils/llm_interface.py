@@ -11,6 +11,7 @@ from prompts.risk_prompt import RISK_PROMPT
 from dotenv import load_dotenv
 import streamlit as st
 import logging
+from pathlib import Path
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -21,6 +22,28 @@ MOCK_MODE = os.getenv("MOCK_MODE", "False").lower() == "true"
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def get_legal_context(clause_text: str) -> str:
+    """Retrieve optional legal context for the clause-risk prompt."""
+    hybrid_dir = os.getenv("LEGAL_HYBRID_INDEX_DIR")
+    vector_dir = os.getenv("LEGAL_VECTOR_STORE_DIR")
+    try:
+        if hybrid_dir:
+            from retrieval.hybrid_index import hybrid_search
+
+            matches = hybrid_search(clause_text, topk=3, index_dir=Path(hybrid_dir))
+            return "\n\n".join(
+                f"Source: {chunk['meta'].get('citation') or chunk['meta'].get('case') or chunk['meta'].get('file')}\n{chunk['text']}"
+                for _, chunk in matches
+            )
+        if vector_dir:
+            from retrieval.vector_store import LegalVectorStore
+
+            return LegalVectorStore(persist_directory=vector_dir).get_legal_context(clause_text)
+    except Exception as exc:
+        logger.warning("Legal retrieval unavailable: %s", exc)
+    return ""
 
 # Cache the extraction function
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -213,8 +236,11 @@ def analyze_risks(clause_title: str, clause_text: str) -> Tuple[List[str], List[
         
         return simple_risks, detailed_risks
     
-    # Prepare prompt
+    # Prepare prompt, with retrieved context when an index is configured.
     prompt = RISK_PROMPT.format(clause_title=clause_title, clause_text=clause_text)
+    legal_context = get_legal_context(clause_text)
+    if legal_context:
+        prompt += "\n\nRetrieved legal context (check source relevance):\n" + legal_context
     
     try:
         # Call OpenAI API
